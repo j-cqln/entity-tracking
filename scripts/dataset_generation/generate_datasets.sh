@@ -1,9 +1,0 @@
-./sample_dataset_nso_exp2_max3_alt_forms_train.sh
-./sample_dataset_nso_exp2_max3_move_contents.sh
-./sample_dataset_nso_exp2_max3_pragmatics_all.sh
-./sample_dataset_nso_exp2_max3_zero_shot_move_contents.sh
-./sample_dataset_nso_exp2_max3_zero_shot_pragmatics_all.sh
-./sample_dataset_nso_exp2_max3.sh
-./sample_dataset_nso_numops_trainlen=2_exp2_max3.sh
-./sample_dataset_nso_zero_shot_exp2_max3.sh
-./sample_dataset.sh
