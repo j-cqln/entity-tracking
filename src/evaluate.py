@@ -66,8 +66,21 @@ if __name__ == "__main__":
             outputs.append(output)
 
             # Correctness
-            if output.strip(".") == gold_response.strip("."):
+            output = output.strip(".")
+
+            if output == gold_response:
                 correct += 1
+            # elif output.replace("absolutely", "").strip() == gold_response:
+            #     correct += 1
+            # else:
+            #     output_content = [tokenizer.decode(item, skip_special_tokens=True).strip() for item in tokenizer.encode(output)]
+            #     output_content = set(item for item in output_content if item not in ["a", "the", "an", ","])
+
+            #     gold_response_content = [tokenizer.decode(item, skip_special_tokens=True).strip() for item in tokenizer.encode(gold_response)]
+            #     gold_response_content = set(item for item in output_content if item not in ["a", "the", "an", ","])
+
+            #     if output_content == gold_response_content:
+            #         correct += 1
         
         # Implicit
         else:
@@ -76,8 +89,6 @@ if __name__ == "__main__":
 
             # Append gold response for teacher forcing
             input_prompt += gold_response
-            
-            gold_response = gold_response.strip(".")
 
             output = generate_implicit(model, tokenizer, input_prompt)
 
@@ -137,12 +148,22 @@ if __name__ == "__main__":
         correct_rank = sum(correct_ranks) / len(data)
 
     # Save outputs
-    with open("{}_{}_{}_{}_outputs.txt".format(args.input_file.split("/")[-1].strip(".jsonl"), args.input_file.split("/")[2], args.model_name, args.type), "w") as f:
+    with open("{}_{}_{}_{}_outputs.txt".format(
+        args.input_file.split("/")[2],
+        args.input_file.split("/")[-1].strip(".jsonl"),
+        args.model_name,
+        args.type
+    ), "w") as f:
         for output in outputs:
             f.write(f"{output}\n")
 
     # Calculate and save accuracy
-    with open("{}_{}_{}_{}_accuracy.txt".format(args.input_file.split("/")[-1].strip(".jsonl"), args.input_file.split("/")[2], args.model_name, args.type), "w") as f:
+    with open("{}_{}_{}_{}_accuracy.txt".format(
+        args.input_file.split("/")[2],
+        args.input_file.split("/")[-1].strip(".jsonl"),
+        args.model_name,
+        args.type
+    ), "w") as f:
         f.write(f"Accuracy: {accuracy}\n")
 
         if args.type == "implicit":

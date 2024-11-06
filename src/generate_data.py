@@ -1,4 +1,5 @@
 import argparse
+import copy
 import random
 import json
 
@@ -69,13 +70,17 @@ class WorldState:
                 content = self._all_objects.pop(random.randrange(len(self._all_objects)))
                 self._boxes[box].add(content)
                 self._input_data += self._initialization["item"].format(box=box, content=content)
+            
+        self._initial_states = copy.deepcopy(self._boxes)
 
     def _generate(self):
         # Start with empty boxes
         # Place 0 or 1 objects in each box
         # Perform operations
         # For each operation, we are either introducing a new object or moving an existing object
-        for _ in range(self._max_num_ops):
+        num_ops = 0
+
+        while num_ops < self._max_num_ops:
             op = random.choice(list(self._operations.keys()))
             box = random.randint(0, self._num_boxes - 1)
 
@@ -94,18 +99,31 @@ class WorldState:
                 else:
                     successful = False
 
-            if not successful:
-                print("failed op")
+            if successful:
+                num_ops += 1
 
     def _put(self, content, box):
         if len(self._boxes[box]) < self._max_items_per_box:
-            self._boxes[box].add(content)
-            self._input_data += self._operations["put"].format(content=content, box=box)
-            return True
+            content_exists = False
+
+            for i in range(self._num_boxes):
+                if content in self._boxes[i]:
+                    content_exists = True
+                    break
+            
+            if not content_exists:
+                self._boxes[box].add(content)
+                self._input_data += self._operations["put"].format(content=content, box=box)
+                return True
+            else:
+                return False
         else:
             return False
         
     def _move(self, from_box, to_box):
+        if from_box == to_box:
+            return False
+        
         if len(self._boxes[from_box]) > 0 and len(self._boxes[to_box]) < self._max_items_per_box:
             content = random.choice(list(self._boxes[from_box]))
             self._boxes[from_box].remove(content)
@@ -125,7 +143,7 @@ class WorldState:
     
     def _format_output(self, box):
         if len(self._boxes[box]) == 0:
-            return "nothing."
+            return "nothing"
 
         output = ""
 
@@ -139,9 +157,7 @@ class WorldState:
                     output += ", and "
             elif i < len(self._boxes[box]) - 2:
                 output += ", "
-        
-        output += "."
-        
+
         return output
 
     def get_input_output_pair(self, box, prompt_type):
@@ -150,6 +166,9 @@ class WorldState:
         else:
             return [self._input_data + self._prompts[prompt_type].format(box=box), self._format_output(box)]
 
+    def get_unchanged_proportion(self):
+        return sum([1 for i in range(self._num_boxes) if self._initial_states[i] == self._boxes[i]]) / self._num_boxes
+    
 if __name__ == "__main__":
     # Get all_objects path from argparse
     parser = argparse.ArgumentParser(description="Generate data for evaluating entity tracking")
@@ -170,9 +189,11 @@ if __name__ == "__main__":
         all_objects = file.read().splitlines()
     
     data = []
+    unchanged_proportions = []
 
     while len(data) < args.n_samples:
         world_state = WorldState(args.num_boxes, args.max_num_ops, args.max_items_per_box, all_objects, args.conversational)
+        unchanged_proportions.append(world_state.get_unchanged_proportion())
 
         # Store input-output pair for each box in each sample
         for box in range(args.num_boxes):
@@ -185,3 +206,5 @@ if __name__ == "__main__":
     with open(args.output_path, "w") as file:
         for item in data:
             file.write(json.dumps({"input": item[0], "output": item[1]}) + "\n")
+    
+    print(sum(unchanged_proportions) / len(unchanged_proportions))
