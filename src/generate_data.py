@@ -47,6 +47,7 @@ class WorldState:
         self._all_objects = all_objects.copy()
 
         self._input_data = ""
+        self._context = set()
 
         if conversational:
             self._initialization = INITIALIZATION
@@ -68,10 +69,14 @@ class WorldState:
                 self._input_data += self._initialization["empty"].format(box=box)
             elif init == "item":
                 content = self._all_objects.pop(random.randrange(len(self._all_objects)))
+
                 self._boxes[box].add(content)
                 self._input_data += self._initialization["item"].format(box=box, content=content)
+
+                self._context.add(content)
             
         self._initial_states = copy.deepcopy(self._boxes)
+        self._all_time_content = [set(box) for box in self._boxes]
 
     def _generate(self):
         # Start with empty boxes
@@ -114,6 +119,13 @@ class WorldState:
             if not content_exists:
                 self._boxes[box].add(content)
                 self._input_data += self._operations["put"].format(content=content, box=box)
+                
+                # Add to all time content
+                self._all_time_content[box].add(content)
+
+                # Add to context
+                self._context.add(content)
+
                 return True
             else:
                 return False
@@ -129,6 +141,10 @@ class WorldState:
             self._boxes[from_box].remove(content)
             self._boxes[to_box].add(content)
             self._input_data += self._operations["move"].format(content=content, from_box=from_box, to_box=to_box)
+
+            # Add to all time content for to_box
+            self._all_time_content[to_box].add(content)
+
             return True
         else:
             return False
@@ -141,30 +157,26 @@ class WorldState:
         else:
             return False
     
-    def _format_output(self, box):
+    def _get_output(self, box):
         if len(self._boxes[box]) == 0:
-            return "nothing"
+            return ["nothing"]
 
-        output = ""
+        return list(self._boxes[box])
+    
+    def _get_formerly_present(self, box):
+        return list(self._all_time_content[box] - self._boxes[box])
 
-        for i, item in enumerate(self._boxes[box]):
-            output += "the " + item
-
-            if i == len(self._boxes[box]) - 2:
-                if i == 0:
-                    output += " and "
-                else:
-                    output += ", and "
-            elif i < len(self._boxes[box]) - 2:
-                output += ", "
-
-        return output
-
-    def get_input_output_pair(self, box, prompt_type):
+    def get_input_output_tuple(self, box, prompt_type):
         if box < 0 or box >= self._num_boxes:
             raise ValueError(f"Invalid box number {box}.")
         else:
-            return [self._input_data + self._prompts[prompt_type].format(box=box), self._format_output(box)]
+            return [
+                self._input_data + self._prompts[prompt_type].format(box=box), # Input, string
+                self._get_output(box), # Output, list
+                list(self._initial_states[box]), # Initial state, list
+                self._get_formerly_present(box), # Formerly present, list
+                list(self._context) # Context, set
+            ]
 
     def get_unchanged_proportion(self):
         return sum([1 for i in range(self._num_boxes) if self._initial_states[i] == self._boxes[i]]) / self._num_boxes
@@ -197,7 +209,7 @@ if __name__ == "__main__":
 
         # Store input-output pair for each box in each sample
         for box in range(args.num_boxes):
-            data.append(world_state.get_input_output_pair(box, args.prompt_type))
+            data.append(world_state.get_input_output_tuple(box, args.prompt_type))
 
             if len(data) == args.n_samples:
                 break
@@ -205,6 +217,12 @@ if __name__ == "__main__":
     # Save as jsonl
     with open(args.output_path, "w") as file:
         for item in data:
-            file.write(json.dumps({"input": item[0], "output": item[1]}) + "\n")
+            file.write(json.dumps({
+                "input": item[0],
+                "output": item[1],
+                "initial_state": item[2],
+                "formerly_present": item[3],
+                "context": item[4]
+            }) + "\n")
     
     print(sum(unchanged_proportions) / len(unchanged_proportions))
