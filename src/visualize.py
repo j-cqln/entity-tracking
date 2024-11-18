@@ -1,12 +1,13 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 # Open tab-separated accuracy files which have 2 columns, the first the type of statistic and the second the value
 for conversational in ["conversational", "not"]:
     for prompt_type in ["complete", "question"]:
         for evaluation_type in ["explicit", "implicit"]:
             for model_name in ["t5-base"]:
-                for few_shot in ["False"]: # ["True", "False"]:
+                for few_shot in ["True", "False"]:
                     for boxes in [1, 3, 5]:
                         accuracy = []
                         top_5_accuracy = []
