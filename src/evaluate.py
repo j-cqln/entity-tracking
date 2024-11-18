@@ -11,6 +11,13 @@ from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokeni
 
 SKIP_WORDS = ["", "and", ",", "the", "a", "an", "some", "absolutely", "both"]
 
+IN_CONTEXT_DEMO = {
+    ("conversational", "complete"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
+    ("conversational", "question"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
+    ("not", "complete"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
+    ("not", "question"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n"
+}
+
 def load_jsonl(data_path):
     with open(data_path, "r") as file:
         data = [json.loads(line) for line in file]
@@ -214,6 +221,9 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model to use")
     parser.add_argument("--type", type=str, required=True, help="Type of generation task.")
 
+    # Boolean arg for 0-shot or 2-shot
+    parser.add_argument("--few_shot", action="store_true", help="Use few-shot evaluation")
+
     args = parser.parse_args()
 
     # Load model and tokenizer
@@ -224,6 +234,9 @@ if __name__ == "__main__":
 
     # Outputs (explicit: generated response, implicit: top 1 token)
     outputs = []
+
+    # Errors
+    errors_list = []
 
     # Metrics
     correct = 0
@@ -250,6 +263,13 @@ if __name__ == "__main__":
         permutation_correct = []
         permutation_top_5_correct = []
         permutation_correct_ranks = []
+
+        # If not few-shot, append 2-shot in-context demonstrations
+        if args.few_shot:
+            conversational = args.input_file.split("/")[-2]
+            prompt_type = args.input_file.split("/")[-1].split("_")[0]
+
+            input_prompt = IN_CONTEXT_DEMO[(conversational, prompt_type)] + input_prompt
 
         # Explicit
         if args.type == "explicit":
@@ -295,6 +315,7 @@ if __name__ == "__main__":
             correct_ranks.append(permutation_correct_ranks)
 
         errors = {key: errors[key] + permutation_errors[key] for key in permutation_errors.keys()}
+        errors_list.append(permutation_errors)
 
     accuracy = correct / len(data)
 
@@ -303,27 +324,40 @@ if __name__ == "__main__":
         correct_rank = statistics.median(correct_ranks) # Formerly (correct_ranks) / len(data)
 
     # Save outputs
-    with open("{}_{}_{}_{}_outputs.txt".format(
+    with open("{}_{}_{}_{}_few_shot_{}_outputs.txt".format(
         args.input_file.split("/")[2],
         args.input_file.split("/")[-1].strip(".jsonl"),
         args.model_name,
-        args.type
+        args.type,
+        args.few_shot
     ), "w") as f:
         for output in outputs:
             f.write(f"{output}\n")
 
-    # Calculate and save accuracy
-    with open("{}_{}_{}_{}_accuracy.txt".format(
+    # Save errors
+    with open("{}_{}_{}_{}_few_shot_{}_errors.txt".format(
         args.input_file.split("/")[2],
         args.input_file.split("/")[-1].strip(".jsonl"),
         args.model_name,
-        args.type
+        args.type,
+        args.few_shot
+    ), "w") as f:
+        for error in errors_list:
+            f.write(f"{error}\n")
+
+    # Calculate and save metrics
+    with open("{}_{}_{}_{}_few_shot_{}_metrics.txt".format(
+        args.input_file.split("/")[2],
+        args.input_file.split("/")[-1].strip(".jsonl"),
+        args.model_name,
+        args.type,
+        args.few_shot
     ), "w") as f:
         f.write(f"accuracy\t{accuracy}\n")
 
         if args.type == "implicit":
             f.write(f"top_5_accuracy\t{top_5_accuracy}\n")
-            f.write(f"mean_gold_response_rank\t{correct_rank}\n")
+            f.write(f"median_gold_response_rank\t{correct_rank}\n")
         
         for error in errors.keys():
             f.write(f"{error}\t{errors[error]}\n")
