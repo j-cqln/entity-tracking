@@ -80,5 +80,5 @@ for conversational in ["conversational", "not"]:
                         ax.set_xticks(x + width, range(6))
                         ax.legend(loc='upper left')
                         ax.set_ylim(0, 250)
-                        plt.savefig(f"{conversational}_{prompt_type}_{boxes}_{evaluation_type}_.png")
+                        plt.savefig(f"{conversational}_{prompt_type}_{boxes}_{evaluation_type}_errors.png")
                         plt.close()
