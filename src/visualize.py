@@ -25,11 +25,13 @@ for conversational in ["conversational", "not"]:
                                 top_5_accuracy.append(float(lines[1][1]))
                                 median_gold_response_rank.append(float(lines[2][1]))
 
+                                error_start_index = 3 if evaluation_type == "implicit" else 1
+
                                 # Errors
                                 if errors == {}:
-                                    errors = {line[0]: [int(line[1])] for line in lines[3:]}
+                                    errors = {line[0]: [int(line[1])] for line in lines[error_start_index:]}
                                 else:
-                                    for line in lines[3:]:
+                                    for line in lines[error_start_index:]:
                                         errors[line[0]].append(int(line[1]))
                             
                         # Accuracy line plot where x axis is number of operations
