@@ -12,10 +12,18 @@ from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokeni
 SKIP_WORDS = ["", "and", ",", "the", "a", "an", "some", "absolutely", "both"]
 
 IN_CONTEXT_DEMO = {
-    ("conversational", "complete"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
-    ("conversational", "question"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
-    ("not", "complete"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
-    ("not", "question"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n"
+    ("conversational", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
+    ("conversational", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 0, you will find the apple. If you open Box 1, you will find the document. If you open Box 2, you will find nothing.\n",
+    # ("conversational", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
+    ("conversational", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
+    ("conversational", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 0? The apple. What will you find if you open Box 1? The document. What will you find if you open Box 2? Nothing.\n",
+    # ("conversational", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
+    ("not", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
+    ("not", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 0 contains the apple. Box 1 contains the document. Box 2 contains nothing.\n",
+    # ("not", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
+    ("not", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n",
+    ("not", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 0? The apple. What is in Box 1? The document. What is in Box 2? Nothing.\n",
+    # ("not", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n"
 }
 
 def load_jsonl(data_path):
@@ -219,10 +227,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate responses and evaluate accuracy")
     parser.add_argument("--input_file", type=str, required=True, help="Path to the input file")
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model to use")
-    parser.add_argument("--type", type=str, required=True, help="Type of generation task.")
+    parser.add_argument("--type", type=str, required=True, help="Type of generation task")
 
     # Boolean arg for 0-shot or 2-shot
     parser.add_argument("--few_shot", action="store_true", help="Use few-shot evaluation")
+    parser.add_argument("--few_shot_type", type=str, help="Type of few-shot prompt")
 
     args = parser.parse_args()
 
@@ -269,7 +278,10 @@ if __name__ == "__main__":
             conversational = args.input_file.split("/")[-2]
             prompt_type = args.input_file.split("/")[-1].split("_")[0]
 
-            input_prompt = IN_CONTEXT_DEMO[(conversational, prompt_type)] + input_prompt
+            if args.few_shot_type not in ["single", "compact", "full"]:
+                raise ValueError("Invalid few-shot type")
+
+            input_prompt = IN_CONTEXT_DEMO[(conversational, prompt_type, args.few_shot_type)] + input_prompt
 
         # Explicit
         if args.type == "explicit":

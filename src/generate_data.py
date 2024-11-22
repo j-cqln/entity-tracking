@@ -202,14 +202,18 @@ if __name__ == "__main__":
     
     data = []
     unchanged_proportions = []
+    nothing_count = 0
 
     while len(data) < args.n_samples:
         world_state = WorldState(args.num_boxes, args.max_num_ops, args.max_items_per_box, all_objects, args.conversational)
         unchanged_proportions.append(world_state.get_unchanged_proportion())
-
+        
         # Store input-output pair for each box in each sample
         for box in range(args.num_boxes):
             data.append(world_state.get_input_output_tuple(box, args.prompt_type))
+
+            if world_state.get_input_output_tuple(box, args.prompt_type)[1] == ["nothing"]:
+                nothing_count += 1
 
             if len(data) == args.n_samples:
                 break
@@ -225,4 +229,8 @@ if __name__ == "__main__":
                 "context": item[4]
             }) + "\n")
     
-    print(sum(unchanged_proportions) / len(unchanged_proportions))
+    with open("unchanged_proportions.out", "a") as file:
+        file.write(str(sum(unchanged_proportions) / len(unchanged_proportions)) + "\n")
+    
+    with open("nothing_proportions.out", "a") as file:
+        file.write(str(nothing_count / len(data)) + "\n")
