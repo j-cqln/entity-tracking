@@ -9,40 +9,46 @@ import pandas as pd
 
 from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
 
-SKIP_WORDS = ["", "and", ",", "the", "a", "an", "some", "absolutely", "both"]
+SKIP_WORDS = ["", "and", ",", "or", "the", "a", "an", "some", "absolutely", "both", "is", "in", "are", "with", "contains", "box", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 IN_CONTEXT_DEMO = {
-    ("conversational", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
-    ("conversational", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 0, you will find the apple. If you open Box 1, you will find the document. If you open Box 2, you will find nothing.\n",
-    # ("conversational", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\n",
-    ("conversational", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
-    ("conversational", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 0? The apple. What will you find if you open Box 1? The document. What will you find if you open Box 2? Nothing.\n",
-    # ("conversational", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\n",
-    ("not", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
-    ("not", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 0 contains the apple. Box 1 contains the document. Box 2 contains nothing.\n",
-    # ("not", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\n",
-    ("not", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n",
-    ("not", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 0? The apple. What is in Box 1? The document. What is in Box 2? Nothing.\n",
-    # ("not", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\n"
+    ("conversational", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 1, you will find the document.\nTask: ",
+    ("conversational", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 0, you will find the apple. If you open Box 1, you will find the document. If you open Box 2, you will find nothing.\nTask: ",
+    ("conversational", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the ball. I put the map in Box 0. If you open Box 0, you will find the ball and the map.\nBox 0 is empty. Box 1 contains the guitar. I move the guitar from Box 1 to Box 0. I put the radio in Box 0. I move the guitar from Box 0 to Box 1. If you open Box 1, you will find the guitar.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. If you open Box 2, you will find nothing.\nTask: ",
+    ("conversational", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 1? The document.\nTask: ",
+    ("conversational", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 0? The apple. What will you find if you open Box 1? The document. What will you find if you open Box 2? Nothing.\nTask: ",
+    ("conversational", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the ball. I put the map in Box 0. What will you find if you open Box 0? The ball and the map.\nBox 0 is empty. Box 1 contains the guitar. I move the guitar from Box 1 to Box 0. I put the radio in Box 0. I move the guitar from Box 0 to Box 1. What will you find if you open Box 1? The guitar.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. I move the document from Box 0 to Box 1. I put the apple in Box 0. I remove the book from Box 2. What will you find if you open Box 2? Nothing.\nTask: ",
+    ("not", "complete", "single"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 1 contains the document.\nTask: ",
+    ("not", "complete", "compact"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 0 contains the apple. Box 1 contains the document. Box 2 contains nothing.\nTask: ",
+    ("not", "complete", "full"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: nBox 0 contains the ball. Put the map in Box 0. Box 0 contains the ball and the map.\nBox 0 is empty. Box 1 contains the guitar. Move the guitar from Box 1 to Box 0. Put the radio in Box 0. Move the guitar from Box 0 to Box 1. Box 1 contains the guitar.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. Box 2 contains nothing.\nTask: ",
+    ("not", "question", "single"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 1? The document.\nTask: ",
+    ("not", "question", "compact"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 0? The apple. What is in Box 1? The document. What is in Box 2? Nothing.\nTask: ",
+    ("not", "question", "full"): "Given a description of box contents and operations, write a true statement about the specified box. Do not provide reasoning or additional information.\nExamples: Box 0 contains the ball. Put the map in Box 0. What is in Box 0? The ball and the map.\nBox 0 is empty. Box 1 contains the guitar. Move the guitar from Box 1 to Box 0. Put the radio in Box 0. Move the guitar from Box 0 to Box 1. What is in Box 1? The guitar.\nBox 0 contains the document. Box 1 is empty. Box 2 contains the book. Move the document from Box 0 to Box 1. Put the apple in Box 0. Remove the book from Box 2. What is in Box 2? Nothing.\nTask: "
 }
 
-def load_jsonl(data_path):
+def load_jsonl(data_path, samples=None):
     with open(data_path, "r") as file:
         data = [json.loads(line) for line in file]
 
+    if samples:
+        data = data[:samples]
+    
     return data
 
 def get_model_and_tokenizer(model_name):
-    if "t5" in model_name.lower():
+    if "t5-base" in model_name.lower():
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     else:
         model = AutoModelForCausalLM.from_pretrained(model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     
+    tokenizer.model_max_length = int(1e30)
+    tokenizer.pad_token = tokenizer.eos_token
+
     return model, tokenizer
 
-def format_gold_responses(actual_content):
+def format_gold_responses(actual_content, prompt_type):
     if actual_content[0] != "nothing":
         gold_responses = []
 
@@ -64,20 +70,23 @@ def format_gold_responses(actual_content):
     else:
         gold_responses = copy.deepcopy(actual_content)
     
+    if prompt_type == "question":
+        gold_responses = [gold_response[0].upper() + gold_response[1:] for gold_response in gold_responses]
+
     return gold_responses
 
 def generate_explicit(model, tokenizer, input_prompt):
-    input_ids = tokenizer(input_prompt, return_tensors="pt").input_ids
-    output_ids = model.generate(input_ids, max_new_tokens=20)
+    encoded_input = tokenizer(input_prompt, return_tensors="pt", padding=True)
+    output_ids = model.generate(**encoded_input, max_new_tokens=20)
     response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
     return response
 
 def generate_implicit(model, tokenizer, input_prompt):
-    encoded_input = tokenizer(input_prompt, return_tensors="pt")
+    encoded_input = tokenizer(input_prompt, return_tensors="pt", padding=True)
     logits = model(**encoded_input, labels=encoded_input["input_ids"]).logits
     return logits
 
-def get_metrics_explicit(output, actual_content, initial_state, formerly_present, context):
+def get_metrics_explicit(tokenizer, input_prompt, output, actual_content, initial_state, formerly_present, context):
     permutation_correct = 0
     errors = {
         "nothing_when_something": 0, "something_when_nothing": 0,
@@ -86,8 +95,8 @@ def get_metrics_explicit(output, actual_content, initial_state, formerly_present
     }
 
     # Process output
-    output = output.strip().strip(".")
-    output_tokens = [tokenizer.decode(item, skip_special_tokens=True).strip() for item in tokenizer.encode(output)]
+    output = output.removeprefix(input_prompt).strip().strip(".").split(".")[0]
+    output_tokens = [tokenizer.decode(item, skip_special_tokens=True).strip().lower() for item in tokenizer.encode(output)]
 
     # Correct if every non-skip word in output is in actual content and no others
     if (
@@ -125,7 +134,7 @@ def get_metrics_explicit(output, actual_content, initial_state, formerly_present
     
     return permutation_correct, errors
 
-def get_metrics_implicit(outputs, gold_responses, start_index, actual_content, initial_state, formerly_present, context):
+def get_metrics_implicit(tokenizer, outputs, gold_responses, start_index, actual_content, initial_state, formerly_present, context):
     decoded_top_outputs = []
     permutation_correct = []
     permutation_top_5_correct = []
@@ -150,12 +159,15 @@ def get_metrics_implicit(outputs, gold_responses, start_index, actual_content, i
         }
 
         for true_decoded_token in [tokenizer.decode(item, skip_special_tokens=True).strip() for item in tokenizer.encode(gold_response)]:
-            if true_decoded_token not in SKIP_WORDS:
+            if true_decoded_token.strip() == "":
+                continue
+            
+            if true_decoded_token.strip() not in SKIP_WORDS:
                 # Get top 5 tokens by probability
                 top_5 = tokenizer.decode(torch.topk(output.squeeze()[index], 5).indices, skip_special_tokens=True)
 
                 # Top 5 accuracy
-                if true_decoded_token not in top_5:
+                if true_decoded_token.strip().lower() not in top_5.lower():
                     top_5_correct_bool = False
 
                 # Get top 1 token by probability
@@ -163,7 +175,7 @@ def get_metrics_implicit(outputs, gold_responses, start_index, actual_content, i
                 top_output.append(top_1)
 
                 # Correctness based on most probable token
-                if true_decoded_token != top_1.strip():
+                if true_decoded_token.strip().lower() != top_1.strip().lower():
                     correct_bool = False
                 
                 # Get rank of gold response
@@ -231,7 +243,13 @@ if __name__ == "__main__":
 
     # Boolean arg for 0-shot or 2-shot
     parser.add_argument("--few_shot", action="store_true", help="Use few-shot evaluation")
-    parser.add_argument("--few_shot_type", type=str, help="Type of few-shot prompt")
+
+    # Format of few-shot in-context demonstrations
+    # No effect if few_shot is not set
+    parser.add_argument("--few_shot_type", type=str, help="Type of few-shot prompt (single, full, or compact)")
+
+    # Optionally truncate data
+    parser.add_argument("--samples", type=int, help="Number of samples to truncate input data to")
 
     args = parser.parse_args()
 
@@ -239,7 +257,10 @@ if __name__ == "__main__":
     model, tokenizer = get_model_and_tokenizer(args.model_name)
     
     # Read input file
-    data = load_jsonl(args.input_file)
+    if args.samples:
+        data = load_jsonl(args.input_file, args.samples)
+    else:
+        data = load_jsonl(args.input_file)
 
     # Outputs (explicit: generated response, implicit: top 1 token)
     outputs = []
@@ -266,7 +287,7 @@ if __name__ == "__main__":
         context = sample["context"]
 
         # Generate correct output for each permutation of gold response
-        gold_responses = format_gold_responses(actual_content)
+        gold_responses = format_gold_responses(actual_content, args.input_file.split("/")[-1].split("_")[0])
 
         # Sample metrics for each permutation
         permutation_correct = []
@@ -286,7 +307,7 @@ if __name__ == "__main__":
         # Explicit
         if args.type == "explicit":
             # Additional processing based on model type
-            if "t5" in args.model_name.lower():
+            if "t5-base" in args.model_name.lower():
                 input_prompt += "<extra_id_0>"
             
             output = generate_explicit(model, tokenizer, input_prompt)
@@ -294,7 +315,7 @@ if __name__ == "__main__":
             
             # Metrics comparing output against all permutations
             permutation_correct, permutation_errors = get_metrics_explicit(
-                output, actual_content, initial_state, formerly_present, context
+                tokenizer, input_prompt, output, actual_content, initial_state, formerly_present, context
             )
         
         # Implicit
@@ -303,6 +324,9 @@ if __name__ == "__main__":
 
             # Length of input prompt
             start_index = len(tokenizer.encode(input_prompt)) - 1
+
+            while tokenizer.decode(tokenizer.encode(input_prompt)[start_index], skip_special_tokens=True).strip() == "":
+                start_index -= 1
 
             for gold_response in gold_responses:
                 # Process input prompt for each permutation for teacher forcing
@@ -314,7 +338,7 @@ if __name__ == "__main__":
 
             # Metrics from teaching forcing for all permutations
             permutation_correct, permutation_top_5_correct, permutation_correct_ranks, permutation_errors, top_1_output = get_metrics_implicit(
-                permutation_outputs, gold_responses, start_index, actual_content, initial_state, formerly_present, context
+                tokenizer, permutation_outputs, gold_responses, start_index, actual_content, initial_state, formerly_present, context
             )
 
             outputs.append(top_1_output)
@@ -336,34 +360,37 @@ if __name__ == "__main__":
         correct_rank = statistics.median(correct_ranks) # Formerly (correct_ranks) / len(data)
 
     # Save outputs
-    with open("{}_{}_{}_{}_few_shot_{}_outputs.txt".format(
+    with open("{}_{}_{}_{}_few_shot_{}_{}_outputs.txt".format(
         args.input_file.split("/")[2],
         args.input_file.split("/")[-1].strip(".jsonl"),
-        args.model_name,
+        args.model_name.replace("/", "-"),
         args.type,
-        args.few_shot
+        args.few_shot,
+        args.few_shot_type if args.few_shot_type else None
     ), "w") as f:
         for output in outputs:
             f.write(f"{output}\n")
 
     # Save errors
-    with open("{}_{}_{}_{}_few_shot_{}_errors.txt".format(
+    with open("{}_{}_{}_{}_few_shot_{}_{}_errors.txt".format(
         args.input_file.split("/")[2],
         args.input_file.split("/")[-1].strip(".jsonl"),
-        args.model_name,
+        args.model_name.replace("/", "-"),
         args.type,
-        args.few_shot
+        args.few_shot,
+        args.few_shot_type if args.few_shot_type else None
     ), "w") as f:
         for error in errors_list:
             f.write(f"{error}\n")
 
     # Calculate and save metrics
-    with open("{}_{}_{}_{}_few_shot_{}_metrics.txt".format(
+    with open("{}_{}_{}_{}_few_shot_{}_{}_metrics.txt".format(
         args.input_file.split("/")[2],
         args.input_file.split("/")[-1].strip(".jsonl"),
-        args.model_name,
+        args.model_name.replace("/", "-"),
         args.type,
-        args.few_shot
+        args.few_shot,
+        args.few_shot_type if args.few_shot_type else None
     ), "w") as f:
         f.write(f"accuracy\t{accuracy}\n")
 
