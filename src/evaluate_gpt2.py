@@ -36,12 +36,8 @@ def load_jsonl(data_path, samples=None):
     return data
 
 def get_model_and_tokenizer(model_name):
-    if "t5-base" in model_name.lower():
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-    else:
-        model = AutoModelForCausalLM.from_pretrained(model_name)
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     
     tokenizer.model_max_length = int(1e30)
     tokenizer.pad_token = tokenizer.eos_token
@@ -77,7 +73,7 @@ def format_gold_responses(actual_content, prompt_type):
 
 def generate_explicit(model, tokenizer, input_prompt):
     encoded_input = tokenizer(input_prompt, return_tensors="pt", padding=True)
-    output_ids = model.generate(**encoded_input, max_new_tokens=20)
+    output_ids = model.generate(**encoded_input, max_new_tokens=512)
     response = tokenizer.decode(output_ids[0], skip_special_tokens=True)
     return response
 
@@ -109,12 +105,12 @@ def get_metrics_explicit(tokenizer, input_prompt, output, actual_content, initia
 
         # Check every type of error
         # Should be nothing, but model predicted something
-        if "nothing" in actual_content and "nothing" not in output_tokens:
-            errors["nothing_when_something"] += 1
+        if ("nothing" in actual_content) and ("nothing" not in output_tokens):
+            errors["something_when_nothing"] += 1
 
         # Should be something, but model predicted nothing
-        if "nothing" not in actual_content and "nothing" in output_tokens:
-            errors["something_when_nothing"] += 1
+        if ("nothing" not in actual_content) and ("nothing" in output_tokens):
+            errors["nothing_when_something"] += 1
 
         # Wrong output but was in context (any from all content of all box)
         if any(item in context for item in output_tokens if item not in SKIP_WORDS and item not in actual_content):
@@ -205,11 +201,11 @@ def get_metrics_implicit(tokenizer, outputs, gold_responses, start_index, actual
 
         # Check every type of error
         # Should be nothing, but model predicted something
-        if not correct_bool and "nothing" in actual_content and "nothing" not in top_output:
+        if (not correct_bool) and ("nothing" in actual_content) and ("nothing" not in top_output):
             error["nothing_when_something"] += 1
 
         # Should be something, but model predicted nothing
-        if not correct_bool and "nothing" not in actual_content and "nothing" in top_output:
+        if (not correct_bool) and ("nothing" not in actual_content) and ("nothing" in top_output):
             error["something_when_nothing"] += 1
 
         # Wrong output but was in context (any from all content of all box)
@@ -306,10 +302,6 @@ if __name__ == "__main__":
 
         # Explicit
         if args.type == "explicit":
-            # Additional processing based on model type
-            if "t5-base" in args.model_name.lower():
-                input_prompt += "<extra_id_0>"
-            
             output = generate_explicit(model, tokenizer, input_prompt)
             outputs.append(output)
             
