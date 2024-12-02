@@ -147,7 +147,7 @@ for few_shot in ["False_None", "True_compact", "True_full", "True_single"]:
 
                 # plt.legend(loc="center right")
 
-                plt.savefig(f"all_{conversational}_{boxes}_few_shot_{few_shot}.png")
+                plt.savefig(f"all_{boxes}_few_shot_{few_shot}.png")
                 plt.close()
 
 # Combined plots, separate by model, few-shot, boxes
@@ -194,7 +194,7 @@ for model_name in ["t5-base", "gpt2"]:
 
                 # plt.legend(loc="center right")
 
-                plt.savefig(f"all_{conversational}_{boxes}_few_shot_{few_shot}.png")
+                plt.savefig(f"all_{model_name}_{boxes}_few_shot_{few_shot}.png")
                 plt.close()
 
 # Data statistics
