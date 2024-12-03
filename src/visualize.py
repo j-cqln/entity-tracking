@@ -106,11 +106,13 @@ for few_shot in ["False_None", "True_compact", "True_full", "True_single"]:
     for prompt_type in ["complete"]:#, "question"]:
         for boxes in [1, 3, 5]:
             accuracies = []
+            top_5_accuracies = []
 
             for model_name in ["t5-base", "gpt2"]:
                 for evaluation_type in ["explicit", "implicit"]:
                     for conversational in ["conversational", "not"]:
                         accuracy = []
+                        top_5_accuracy = []
 
                         for ops in [0, 1, 2, 3, 4, 5]:
                             filename = f"{conversational}_{prompt_type}_{boxes}-box-{ops}-op_{model_name}_{evaluation_type}_few_shot_{few_shot}_metrics.txt"
@@ -119,18 +121,25 @@ for few_shot in ["False_None", "True_compact", "True_full", "True_single"]:
                                 lines = f.readlines()
                                 lines = [line.strip().split("\t") for line in lines]
                                 accuracy.append(float(lines[0][1]))
+
+                                if evaluation_type == "implicit":
+                                    top_5_accuracy.append(float(lines[1][1]))
                         
                         accuracies.append((accuracy, evaluation_type, conversational, model_name))
 
-                plt.ylim(-0.02, 1.02)
+                        if len(top_5_accuracy) > 1:
+                            top_5_accuracies.append((top_5_accuracy, evaluation_type, conversational, model_name))
 
-                label_found = set()
                 label_to_color = {
                     ("explicit", "t5-base"): "chartreuse",
                     ("implicit", "t5-base"): "dodgerblue",
                     ("explicit", "gpt2"): "mediumseagreen",
                     ("implicit", "gpt2"): "midnightblue",
                 }
+
+                # Accuracy
+                plt.ylim(-0.02, 1.02)
+                label_found = set()
 
                 for a in accuracies:
                     linestyle = "solid" if a[2] == "conversational" else "dashed"
@@ -145,21 +154,41 @@ for few_shot in ["False_None", "True_compact", "True_full", "True_single"]:
                 plt.xlabel("Number of operations")
                 plt.ylabel("Accuracy")
 
-                # plt.legend(loc="center right")
-
                 plt.savefig(f"all_{boxes}_few_shot_{few_shot}.png")
                 plt.close()
 
-# Combined plots, separate by model, few-shot, boxes
+                # Top-5 accuracy
+                plt.ylim(-0.02, 1.02)
+                label_found = set()
+
+                for a in top_5_accuracies:
+                    linestyle = "solid" if a[2] == "conversational" else "dashed"
+
+                    if a[1] in label_found:
+                        plt.plot(range(6), a[0], color=label_to_color[(a[1], a[3])], linestyle=linestyle)
+                    else:
+                        label_found.add(a[1])
+                        plt.plot(range(6), a[0], color=label_to_color[(a[1], a[3])], label=a[1], linestyle=linestyle)
+
+                plt.title(f"Top-5 accuracy, {boxes} box(es), few-shot={few_shot.removesuffix("_None")}")
+                plt.xlabel("Number of operations")
+                plt.ylabel("Top-5 accuracy")
+
+                plt.savefig(f"all_{boxes}_few_shot_{few_shot}_top_5.png")
+                plt.close()
+
+# # Combined plots, separate by model, few-shot, boxes
 for model_name in ["t5-base", "gpt2"]:
     for few_shot in ["False_None", "True_compact", "True_full", "True_single"]:
         for prompt_type in ["complete"]:#, "question"]:
             for boxes in [1, 3, 5]:
                 accuracies = []
+                top_5_accuracies = []
 
                 for evaluation_type in ["explicit", "implicit"]:
                     for conversational in ["conversational", "not"]:
                         accuracy = []
+                        top_5_accuracy = []
 
                         for ops in [0, 1, 2, 3, 4, 5]:
                             filename = f"{conversational}_{prompt_type}_{boxes}-box-{ops}-op_{model_name}_{evaluation_type}_few_shot_{few_shot}_metrics.txt"
@@ -168,16 +197,23 @@ for model_name in ["t5-base", "gpt2"]:
                                 lines = f.readlines()
                                 lines = [line.strip().split("\t") for line in lines]
                                 accuracy.append(float(lines[0][1]))
+
+                                if evaluation_type == "implicit":
+                                    top_5_accuracy.append(float(lines[1][1]))
                         
                         accuracies.append((accuracy, evaluation_type, conversational))
 
-                plt.ylim(-0.02, 1.02)
+                        if len(top_5_accuracy) > 1:
+                            top_5_accuracies.append((top_5_accuracy, evaluation_type, conversational, model_name))
 
-                label_found = set()
                 label_to_color = {
                     "explicit": "chartreuse",
                     "implicit": "dodgerblue"
                 }
+
+                # Accuracy
+                plt.ylim(-0.02, 1.02)
+                label_found = set()
 
                 for a in accuracies:
                     linestyle = "solid" if a[2] == "conversational" else "dashed"
@@ -192,9 +228,27 @@ for model_name in ["t5-base", "gpt2"]:
                 plt.xlabel("Number of operations")
                 plt.ylabel("Accuracy")
 
-                # plt.legend(loc="center right")
-
                 plt.savefig(f"all_{model_name}_{boxes}_few_shot_{few_shot}.png")
+                plt.close()
+
+                # Top-5 accuracy
+                plt.ylim(-0.02, 1.02)
+                label_found = set()
+
+                for a in top_5_accuracies:
+                    linestyle = "solid" if a[2] == "conversational" else "dashed"
+
+                    if a[1] in label_found:
+                        plt.plot(range(6), a[0], color=label_to_color[a[1]], linestyle=linestyle)
+                    else:
+                        label_found.add(a[1])
+                        plt.plot(range(6), a[0], color=label_to_color[a[1]], label=a[1], linestyle=linestyle)
+
+                plt.title(f"Top-5 accuracy, {model_name}, {boxes} box(es), few-shot={few_shot.removesuffix("_None")}")
+                plt.xlabel("Number of operations")
+                plt.ylabel("Top-5 accuracy")
+
+                plt.savefig(f"all_{model_name}_{boxes}_few_shot_{few_shot}_top_5.png")
                 plt.close()
 
 # Data statistics
