@@ -1,0 +1,4 @@
+pytorch=2.3
+pandas=2.2.2
+transformers=4.44.1
+matplotlib
