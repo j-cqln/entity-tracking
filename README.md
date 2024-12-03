@@ -7,7 +7,7 @@ Required packages can be found in `src/requirements.txt`. Python version >= 3.12
 
 ### Data generation
 
-Modify parameters accordingly `src/generate_data.sh` and run to generate data sets
+Modify parameters accordingly `src/generate_data.sh` and run to generate data sets. To update the set of possible content items, modify `data/all_objects`.
 
 ### Evaluate
 
