@@ -35,9 +35,6 @@ PROMPTS_CONVERSATIONAL = {
 #     "move": ["Move", "Transfer"]
 # }
 
-# Few-shot prompt
-# TBD
-
 class WorldState:
     def __init__(self, num_boxes, max_num_ops, max_items_per_box, all_objects, conversational=False):
         self._boxes = [set() for _ in range(num_boxes)]
